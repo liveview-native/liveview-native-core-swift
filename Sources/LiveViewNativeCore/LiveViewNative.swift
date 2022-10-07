@@ -51,7 +51,8 @@ public class Document {
     ///
     /// - Throws: `ParseError` if the content cannot be parsed for some reason
     public static func parse<S: ToRustStr>(_ str: S) throws -> Document {
-        try str.toRustStr({ rustStr -> Result<Document, ParseError> in
+        var str = str
+        return try str.toRustStr({ rustStr -> Result<Document, ParseError> in
             let errorPtr = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<_RustString>.stride, alignment: MemoryLayout<_RustString>.alignment).assumingMemoryBound(to: _RustString.self)
             let result = __liveview_native_core$Document$parse(rustStr.toFfiRepr(), errorPtr)
             if result.is_ok {
