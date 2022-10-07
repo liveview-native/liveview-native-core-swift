@@ -25,8 +25,9 @@ public class RustStr {
         if len == 0 {
             return nil
         } else {
-            let bytes = self.toBufferPointer()
-            return String(bytes: bytes, encoding: .utf8)
+            return self.withBufferPointer { bytes in
+                return String(bytes: bytes, encoding: .utf8)
+            }
         }
     }
 
@@ -34,8 +35,9 @@ public class RustStr {
         RustSlice(ptr: self.ptr, len: self.len)
     }
 
-    func toBufferPointer() -> UnsafeBufferPointer<UInt8> {
-        return UnsafeBufferPointer(start: self.ptr.map { $0.assumingMemoryBound(to: UInt8.self) }, count: self.len)
+    func withBufferPointer<T>(_ body: (UnsafeBufferPointer<UInt8>) throws -> T) rethrows -> T {
+        let ptr = UnsafeBufferPointer(start: self.ptr.map { $0.assumingMemoryBound(to: UInt8.self) }, count: self.len)
+        return try body(ptr)
     }
 
     func toFfiRepr() -> _RustStr {
@@ -132,16 +134,18 @@ public class RustString {
     }
 
     public func toString() -> String {
-        let bytes = self.toBufferPointer()
-        return String(bytes: bytes, encoding: .utf8)!
+        return self.withBufferPointer { bytes in
+            return String(bytes: bytes, encoding: .utf8)!
+        }
     }
 
     func toRustStr() -> RustStr {
         return RustStr(ptr: self.ptr, len: self.len)
     }
 
-    func toBufferPointer() -> UnsafeBufferPointer<UInt8> {
-        return UnsafeBufferPointer(start: self.ptr.assumingMemoryBound(to: UInt8.self), count: self.len)
+    func withBufferPointer<T>(_ body: (UnsafeBufferPointer<UInt8>) throws -> T) rethrows -> T {
+        let ptr = UnsafeBufferPointer(start: self.ptr.assumingMemoryBound(to: UInt8.self), count: self.len)
+        return try body(ptr)
     }
 }
 extension RustString: Equatable {
