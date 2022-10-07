@@ -15,20 +15,11 @@ public enum EventType {
     case changed
 }
 
-struct Handler {
-    let context: AnyObject?
-    let callback: (Document, AnyObject?) -> ()
-
-    func call(_ doc: Document) {
-        callback(doc, context)
-    }
-}
-
 /// A `Document` corresponds to the tree of elements in a UI, and supports a variety
 /// of operations used to traverse, query, and mutate that tree.
 public class Document {
     var repr: __Document
-    var handlers: [EventType: Handler] = [:]
+    var handlers: [EventType: (Document) -> Void] = [:]
 
     init(_ doc: __Document) {
         self.repr = doc
@@ -74,23 +65,18 @@ public class Document {
 
     /// Register a callback to be fired when a matching event occurs on this document.
     ///
-    /// The given callback receives the document to which the event applies, as well as the
-    /// (optional) context object provided.
+    /// The given callback receives the document to which the event applies.
     ///
     /// Only one callback per event type is supported. Calling this function multiple times for the
-    /// same event will only result in the last callback provided being invoked for that tevent
+    /// same event will crash.
     ///
     /// - Parameters:
     ///   - event: The `EventType` for which the given callback should be invoked
-    ///   - context: A caller-provided value which should be passed to the callback when it is invoked
     ///   - callback: The callback to invoke when an event of the given type occurs
     ///
-    public func on(_ event: EventType, _ callback: @escaping (Document, AnyObject?) -> ()) {
-        self.handlers[event] = Handler(context: nil, callback: callback)
-    }
-
-    public func on<T: AnyObject>(_ event: EventType, with context: T, _ callback: @escaping (Document, AnyObject?) -> ()) {
-        self.handlers[event] = Handler(context: context, callback: callback)
+    public func on(_ event: EventType, _ callback: @escaping (Document) -> ()) {
+        precondition(!self.handlers.keys.contains(event))
+        self.handlers[event] = callback
     }
 
     /// Updates this document by calculating the changes needed to make it equivalent to `doc`,
@@ -100,9 +86,7 @@ public class Document {
     ///   - doc: The document to compare against
     public func merge(with doc: Document) {
         if __liveview_native_core$Document$merge(self.repr, doc.repr) {
-            if let handler = self.handlers[.changed] {
-                handler.call(self)
-            }
+            self.handlers[.changed]?(self)
         }
     }
 
