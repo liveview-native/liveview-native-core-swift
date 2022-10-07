@@ -19,9 +19,8 @@ final class LiveViewNativeCoreTests: XCTestCase {
 </html>
 """
         let doc1 = try Document.parse(input)
-        doc1.on(.changed, with: context) { doc, ctx in
-            XCTAssertEqual(ctx is MyContext, true)
-            (ctx as! MyContext).didChange = true
+        doc1.on(.changed) { doc in
+            context.didChange = true
         }
         let rendered1 = doc1.toString()
         XCTAssertEqual(input, rendered1)
