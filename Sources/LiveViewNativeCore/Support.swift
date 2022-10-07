@@ -97,7 +97,7 @@ public struct RustStrIterator: IteratorProtocol {
 }
 
 public protocol ToRustStr {
-    func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T;
+    mutating func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T;
 }
 extension RustStr: ToRustStr {
     public func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T {
@@ -105,15 +105,14 @@ extension RustStr: ToRustStr {
     }
 }
 extension String: ToRustStr {
-    public func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T {
-        return self.utf8CString.withUnsafeBufferPointer({ bufferPtr in
-                                                            let rustStr = RustStr(
-                                                              ptr: bufferPtr.baseAddress.map { UnsafeRawPointer($0) },
-                                                              // Subtract 1 because of the null termination character at the end
-                                                              len: bufferPtr.count - 1
-                                                            )
-                                                            return withUnsafeRustStr(rustStr)
-                                                        })
+    public mutating func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T {
+        return self.withUTF8 { bufferPtr in
+            let rustStr = RustStr(
+                ptr: bufferPtr.baseAddress.map { UnsafeRawPointer($0) },
+                len: bufferPtr.count
+            )
+            return withUnsafeRustStr(rustStr)
+        }
     }
 }
 
