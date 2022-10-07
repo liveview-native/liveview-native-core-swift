@@ -52,18 +52,18 @@ public class Document {
     /// - Throws: `ParseError` if the content cannot be parsed for some reason
     public static func parse<S: ToRustStr>(_ str: S) throws -> Document {
         var str = str
-        return try str.toRustStr({ rustStr -> Result<Document, ParseError> in
+        return try str.toRustStr({ rustStr in
             let errorPtr = UnsafeMutableRawPointer.allocate(byteCount: MemoryLayout<_RustString>.stride, alignment: MemoryLayout<_RustString>.alignment).assumingMemoryBound(to: _RustString.self)
             let result = __liveview_native_core$Document$parse(rustStr.toFfiRepr(), errorPtr)
             if result.is_ok {
                 errorPtr.deallocate()
                 let doc = Document(__Document(ptr: result.ok_result))
-                return .success(doc)
+                return doc
             } else {
                 let rustString = RustString(errorPtr.move())
-                return .failure(ParseError(message: rustString.toString()))
+                throw ParseError(message: rustString.toString())
             }
-                      }).get()
+        })
     }
 
     /// Renders this document to a `String` for display and comparison

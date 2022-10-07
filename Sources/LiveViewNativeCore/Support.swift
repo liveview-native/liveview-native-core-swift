@@ -97,21 +97,21 @@ public struct RustStrIterator: IteratorProtocol {
 }
 
 public protocol ToRustStr {
-    mutating func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T;
+    mutating func toRustStr<T> (_ withUnsafeRustStr: (RustStr) throws -> T) rethrows -> T
 }
 extension RustStr: ToRustStr {
-    public func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T {
-        return withUnsafeRustStr(self)
+    public func toRustStr<T> (_ withUnsafeRustStr: (RustStr) throws -> T) rethrows -> T {
+        return try withUnsafeRustStr(self)
     }
 }
 extension String: ToRustStr {
-    public mutating func toRustStr<T> (_ withUnsafeRustStr: (RustStr) -> T) -> T {
-        return self.withUTF8 { bufferPtr in
+    public mutating func toRustStr<T> (_ withUnsafeRustStr: (RustStr) throws -> T) rethrows -> T {
+        return try self.withUTF8 { bufferPtr in
             let rustStr = RustStr(
                 ptr: bufferPtr.baseAddress.map { UnsafeRawPointer($0) },
                 len: bufferPtr.count
             )
-            return withUnsafeRustStr(rustStr)
+            return try withUnsafeRustStr(rustStr)
         }
     }
 }
