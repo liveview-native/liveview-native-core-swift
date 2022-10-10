@@ -147,12 +147,7 @@ public class Node: Identifiable {
     public let data: Data
     /// The attributes associated with this node
     public lazy var attributes: [Attribute] = {
-        let refs = doc.getAttrs(id)
-        var attributes: [Attribute] = []
-        for ref in refs {
-            attributes.append(doc.getAttr(ref))
-        }
-        return attributes
+        return doc.getAttrs(id).map(doc.getAttr(_:))
     }()
 
     init(doc: Document, ref: NodeRef, data: __Node) {
@@ -212,19 +207,13 @@ public struct ElementNode {
     public let namespace: String?
     /// The name of the element tag in the document
     public let tag: String
-    /// A dictionary of attributes associated with this element
-    public let attributes: [AttributeName: String]
+    /// An array of attributes associated with this element
+    public let attributes: [Attribute]
 
     init(doc: Document, ref: NodeRef, data: __Element) {
         self.namespace = RustStr(data.ns).toString()
         self.tag = RustStr(data.tag).toString()!
-        let attrs = RustSlice<AttributeRef>(data.attributes)
-        var attributes = Dictionary<AttributeName, String>(minimumCapacity: attrs.len)
-        for attr in attrs {
-            let attribute = doc.getAttr(attr)
-            attributes[attribute.name] = attribute.value
-        }
-        self.attributes = attributes
+        self.attributes = RustSlice<AttributeRef>(data.attributes).map(doc.getAttr(_:))
     }
 }
 
