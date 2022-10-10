@@ -172,32 +172,30 @@ public class Node: Identifiable {
         }
         return nil
     }
-}
-extension Node: Sequence {
-    public func makeIterator() -> NodeChildrenIterator {
-        let children = self.doc.getChildren(self.id)
-        return NodeChildrenIterator(doc: self.doc, children: children)
+    
+    /// A sequence of the children of this node.
+    public func children() -> NodeChildrenSequence {
+        let children = doc.getChildren(id)
+        return NodeChildrenSequence(doc: doc, slice: children, startIndex: children.startIndex, endIndex: children.endIndex)
     }
 }
 
-/// An iterator for the direct children of a `Node`
-public struct NodeChildrenIterator: IteratorProtocol {
+/// A sequence representing the direct children of a node.
+public struct NodeChildrenSequence: Sequence, Collection, RandomAccessCollection {
+    public typealias Element = Node
+    public typealias Index = Int
+    
     let doc: Document
-    let children: RustSlice<NodeRef>
-    var index: Int = 0
-
-    init(doc: Document, children: RustSlice<NodeRef>) {
-        self.doc = doc
-        self.children = children
+    let slice: RustSlice<NodeRef>
+    public let startIndex: Int
+    public let endIndex: Int
+    
+    public func index(after i: Int) -> Int {
+        i + 1
     }
-
-    public mutating func next() -> Node? {
-        if index >= children.len {
-            return nil
-        }
-        let child = doc[children[index]]
-        index += 1
-        return child
+    
+    public subscript(position: Int) -> Node {
+        doc[slice[startIndex + position]]
     }
 }
 
