@@ -256,15 +256,36 @@ extension Attribute: Hashable {
 ///
 /// Attribute names can be namespaced, so rather than represent them as a plain `String`,
 /// we use this type to preserve the information for easy accessibility.
-public struct AttributeName {
+public struct AttributeName: RawRepresentable {
     public var namespace: String?
     public var name: String
-
-    public init(_ name: String) {
-        self.init(namespace: nil, name: name)
+    
+    /// The textual representation (`namespace:name` if it has a namespace, otherwise just the name) of this attribute name.
+    public var rawValue: String {
+        if let namespace {
+            return "\(namespace):\(name)"
+        } else {
+            return name
+        }
+    }
+    
+    /// Creates a name by parsing a string, extracting a namespace if present.
+    ///
+    /// Fails if the string is empty or there are more than two colon-delimited parts.
+    public init?(rawValue: String) {
+        let parts = rawValue.split(separator: ":")
+        switch parts.count {
+        case 1:
+            self.name = rawValue
+        case 2:
+            self.namespace = String(parts[0])
+            self.name = String(parts[1])
+        default:
+            return nil
+        }
     }
 
-    public init(namespace: String?, name: String) {
+    public init(namespace: String? = nil, name: String) {
         self.namespace = namespace
         self.name = name
     }
@@ -279,13 +300,19 @@ public struct AttributeName {
         }
     }
 }
+extension AttributeName: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)!
+    }
+}
+extension AttributeName: CustomStringConvertible {
+    public var description: String {
+        rawValue
+    }
+}
 extension AttributeName: Identifiable {
     public var id: String {
-        if let ns = namespace {
-            return "\(ns):\(name)"
-        } else {
-            return name
-        }
+        rawValue
     }
 }
 extension AttributeName: Equatable {
