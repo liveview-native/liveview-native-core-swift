@@ -178,6 +178,21 @@ public class Node: Identifiable {
         let children = doc.getChildren(id)
         return NodeChildrenSequence(doc: doc, slice: children, startIndex: children.startIndex, endIndex: children.endIndex)
     }
+    
+    /// A sequence of this node's children that visits them recursively in depth-first order.
+    ///
+    /// ## Example
+    /// In the following code, the tags are visited in the following order: `a`, `b`, `c`, `d`.
+    /// ```swift
+    /// let doc = try! Document.parse("<a><b><c /></b><d /></a>")
+    /// for node in doc[doc.root()].depthFirstChildren() {
+    ///     // ...
+    /// }
+    /// ```
+    /// - Note: The sequence does not include this node. However, if called on the root node of a document (as in the example above), it will include the outermost _element_ because the parser inserts a virtual ``Node/Data-swift.enum/root`` node.
+    public func depthFirstChildren() -> NodeDepthFirstChildrenSequence {
+        return NodeDepthFirstChildrenSequence(root: self)
+    }
 }
 
 /// A sequence representing the direct children of a node.
@@ -196,6 +211,39 @@ public struct NodeChildrenSequence: Sequence, Collection, RandomAccessCollection
     
     public subscript(position: Int) -> Node {
         doc[slice[startIndex + position]]
+    }
+}
+
+/// A sequence of the recursive children of a node, visited in depth-first order.
+///
+/// See ``Node/depthFirstChildren()``
+public struct NodeDepthFirstChildrenSequence: Sequence {
+    public typealias Element = Node
+    
+    let root: Node
+    
+    public func makeIterator() -> Iterator {
+        return Iterator(children: [root.children().makeIterator()])
+    }
+    
+    public struct Iterator: IteratorProtocol {
+        public typealias Element = Node
+        
+        var children: [NodeChildrenSequence.Iterator]
+        
+        public mutating func next() -> Node? {
+            if !children.isEmpty {
+                if let node = children[children.count - 1].next() {
+                    children.append(node.children().makeIterator())
+                    return node
+                } else {
+                    children.removeLast()
+                    return self.next()
+                }
+            } else {
+                return nil
+            }
+        }
     }
 }
 
