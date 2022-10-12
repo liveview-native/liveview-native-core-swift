@@ -47,4 +47,18 @@ final class LiveViewNativeCoreTests: XCTestCase {
         let finalRender = doc1.toString()
         XCTAssertEqual(finalRender, rendered2)
     }
+    
+    func testDepthFirstIterator() throws {
+        let input = "<a><b><c /></b><d /></a>"
+        let doc = try Document.parse(input)
+        let rootNode = doc[doc.root()]
+        let tags = rootNode.depthFirstChildren().map {
+            if case .element(let data) = $0.data {
+                return data.tag
+            } else {
+                fatalError()
+            }
+        }
+        XCTAssertEqual(tags, ["a", "b", "c", "d"])
+    }
 }
