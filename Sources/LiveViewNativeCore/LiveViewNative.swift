@@ -135,7 +135,7 @@ public class Node: Identifiable {
     /// The type and associated data of this node
     public enum Data {
         case root
-        case element(ElementNode)
+        case element(ElementData)
         case leaf(String)
     }
 
@@ -157,7 +157,7 @@ public class Node: Identifiable {
         case .NodeTypeRoot:
             self.data = .root
         case .NodeTypeElement:
-            self.data = .element(ElementNode(doc: doc, ref: ref, data: data.data.element))
+            self.data = .element(ElementData(doc: doc, ref: ref, data: data.data.element))
         case .NodeTypeLeaf:
             self.data = .leaf(RustStr(data.data.leaf).toString()!)
         }
@@ -200,7 +200,7 @@ public struct NodeChildrenSequence: Sequence, Collection, RandomAccessCollection
 }
 
 /// Represents a node in a `Document` which can have children and attributes
-public struct ElementNode {
+public struct ElementData {
     /// An (optional) namespace for the element tag name
     public let namespace: String?
     /// The name of the element tag in the document
