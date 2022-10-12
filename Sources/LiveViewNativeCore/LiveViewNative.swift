@@ -145,10 +145,14 @@ public class Node: Identifiable {
     public let id: NodeRef
     /// The type and data associated with this node
     public let data: Data
-    /// The attributes associated with this node
-    public lazy var attributes: [Attribute] = {
-        return doc.getAttrs(id).map(doc.getAttr(_:))
-    }()
+    /// The attributes associated with this node. Returns an empty array if this node is not an element.
+    public var attributes: [Attribute] {
+        if case .element(let data) = data {
+            return data.attributes
+        } else {
+            return []
+        }
+    }
 
     init(doc: Document, ref: NodeRef, data: __Node) {
         self.id = ref
@@ -165,12 +169,7 @@ public class Node: Identifiable {
 
     /// Nodes are indexable by attribute name, returning the first attribute with that name
     public subscript(_ name: AttributeName) -> Attribute? {
-        for attr in attributes {
-            if attr.name == name {
-                return attr
-            }
-        }
-        return nil
+        return attributes.first { $0.name == name }
     }
     
     /// A sequence of the children of this node.
