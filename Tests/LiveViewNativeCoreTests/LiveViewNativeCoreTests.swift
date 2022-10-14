@@ -61,4 +61,12 @@ final class LiveViewNativeCoreTests: XCTestCase {
         }
         XCTAssertEqual(tags, ["a", "b", "c", "d"])
     }
+    
+    func testNodeToString() throws {
+        let input = "<a><b>hello</b></a>"
+        let doc = try Document.parse(input)
+        let a = doc[doc.root()].children().first!
+        let b = a.children().first!
+        XCTAssertEqual(b.toString(), "<b>\n  hello\n</b>")
+    }
 }

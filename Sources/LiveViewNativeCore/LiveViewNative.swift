@@ -166,6 +166,12 @@ public class Node: Identifiable {
             self.data = .leaf(RustStr(data.data.leaf).toString()!)
         }
     }
+    
+    /// Renders this node to a `String`
+    public func toString() -> String {
+        let str = RustString(__liveview_native_core$Document$node_to_string(self.doc.repr, self.id))
+        return str.toString()
+    }
 
     /// Nodes are indexable by attribute name, returning the first attribute with that name
     public subscript(_ name: AttributeName) -> Attribute? {
