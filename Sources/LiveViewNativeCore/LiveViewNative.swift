@@ -15,11 +15,55 @@ public enum EventType {
     case changed
 }
 
+typealias OnChangeCallback = @convention(c) (UnsafeMutableRawPointer?, NodeRef) -> ()
+
+public class AttributeVec {
+    let ptr: UnsafeRawPointer?
+    public let len: Int
+    let capacity: Int
+
+    public var isEmpty: Bool { return len == 0 }
+
+    init(ptr: UnsafeRawPointer?, len: Int, capacity: Int) {
+        self.ptr = ptr
+        self.len = len
+        self.capacity = capacity
+    }
+
+    convenience init(_ vec: _AttributeVec) {
+        self.init(ptr: vec.start, len: Int(vec.len), capacity: Int(vec.capacity))
+    }
+
+    deinit {
+        let repr = _AttributeVec(start: self.ptr, len: UInt(self.len), capacity: UInt(self.capacity))
+        __liveview_native_core$AttributeVec$drop(repr)
+    }
+
+    public func toSlice() -> RustSlice<__Attribute> {
+        RustSlice(ptr: self.ptr, len: self.len)
+    }
+
+    /// Parse a `Document` from the given `String` or `String`-like type
+    public func get(index: Int) -> Attribute? {
+        if index >= self.len {
+            return nil
+        } else {
+            return Attribute(self.toBufferPointer()[index])
+        }
+    }
+
+    func toBufferPointer() -> UnsafeBufferPointer<__Attribute> {
+        UnsafeBufferPointer(start: self.ptr.map { $0.assumingMemoryBound(to: __Attribute.self) }, count: self.len)
+    }
+}
+
+
+
 /// A `Document` corresponds to the tree of elements in a UI, and supports a variety
 /// of operations used to traverse, query, and mutate that tree.
 public class Document {
     var repr: __Document
-    var handlers: [EventType: (Document) -> Void] = [:]
+    var handlers: [EventType: (Document, NodeRef) -> Void] = [:]
 
     init(_ doc: __Document) {
         self.repr = doc
@@ -74,7 +118,7 @@ public class Document {
     ///   - event: The `EventType` for which the given callback should be invoked
     ///   - callback: The callback to invoke when an event of the given type occurs
     ///
-    public func on(_ event: EventType, _ callback: @escaping (Document) -> ()) {
+    public func on(_ event: EventType, _ callback: @escaping (Document, NodeRef) -> ()) {
         precondition(!self.handlers.keys.contains(event))
         self.handlers[event] = callback
     }
@@ -85,9 +129,15 @@ public class Document {
     /// - Parameters:
     ///   - doc: The document to compare against
     public func merge(with doc: Document) {
-        if __liveview_native_core$Document$merge(self.repr, doc.repr) {
-            self.handlers[.changed]?(self)
+        let context = Unmanaged.passUnretained(self).toOpaque()
+
+        let callback: OnChangeCallback = { context, node in
+            let this = Unmanaged<Document>.fromOpaque(context!).takeUnretainedValue()
+
+            this.handlers[.changed]?(this, node)
         }
+
+        __liveview_native_core$Document$merge(self.repr, doc.repr, callback, context)
     }
 
     /// Returns a reference to the root node of the document
@@ -108,14 +158,9 @@ public class Document {
         return RustSlice(ptr: slice.start, len: Int(slice.len))
     }
 
-    func getAttrs(_ ref: NodeRef) -> RustSlice<AttributeRef> {
-        let slice = __liveview_native_core$Document$attributes(self.repr, ref)
-        return RustSlice(ptr: slice.start, len: Int(slice.len))
-    }
-
-    func getAttr(_ ref: AttributeRef) -> Attribute {
-        let attribute = __liveview_native_core$Document$get_attribute(self.repr, ref)
-        return Attribute(attribute)
+    func getAttrs(_ ref: NodeRef) -> AttributeVec {
+        let av = __liveview_native_core$Document$attributes(self.repr, ref)
+        return AttributeVec(av)
     }
 }
 
@@ -258,7 +303,8 @@ public struct ElementData {
     init(doc: Document, ref: NodeRef, data: __Element) {
         self.namespace = RustStr(data.ns).toString()
         self.tag = RustStr(data.tag).toString()!
-        self.attributes = RustSlice<AttributeRef>(data.attributes).map(doc.getAttr(_:))
+        let av = AttributeVec(data.attributes)
+        self.attributes = av.toSlice().map { attr in Attribute(attr) }
     }
 }
 
