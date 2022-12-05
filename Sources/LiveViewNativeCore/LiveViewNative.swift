@@ -1,5 +1,7 @@
 import liveview_native_core
 
+public typealias NodeRef = liveview_native_core.NodeRef
+
 /// Raised when a `Document` fails to parse
 public struct ParseError: Error {
     let message: String
@@ -151,6 +153,16 @@ public class Document {
     public subscript(ref: NodeRef) -> Node {
         let node = __liveview_native_core$Document$get(self.repr, ref)
         return Node(doc: self, ref: ref, data: node)
+    }
+    
+    /// Returns the parent, if there is one, of the node with the given ref.
+    public func getParent(_ ref: NodeRef) -> NodeRef? {
+        let result = __liveview_native_core$Document$get_parent(self.repr, ref)
+        if result.is_some {
+            return result.some_value
+        } else {
+            return nil
+        }
     }
 
     func getChildren(_ ref: NodeRef) -> RustSlice<NodeRef> {
