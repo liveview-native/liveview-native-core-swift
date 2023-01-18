@@ -13,13 +13,13 @@ final class LiveViewNativeCoreTests: XCTestCase {
     <head>
         <meta charset="utf-8" />
     </head>
-    <body class="new-value" class="main">
+    <body foo="new-value" bar="main">
         some content
     </body>
 </html>
 """
         let doc1 = try Document.parse(input)
-        doc1.on(.changed) { doc in
+        doc1.on(.changed) { doc, _ in
             context.didChange = true
         }
         let rendered1 = doc1.toString()
@@ -31,7 +31,7 @@ final class LiveViewNativeCoreTests: XCTestCase {
         <meta charset="utf-8" />
         <meta name="title" content="Hello World" />
     </head>
-    <body class="new-value" class="main">
+    <body foo="new-value" bar="main">
         new content
     </body>
 </html>
@@ -67,6 +67,6 @@ final class LiveViewNativeCoreTests: XCTestCase {
         let doc = try Document.parse(input)
         let a = doc[doc.root()].children().first!
         let b = a.children().first!
-        XCTAssertEqual(b.toString(), "<b>\n  hello\n</b>")
+        XCTAssertEqual(b.toString(), "<b>\n    hello\n</b>")
     }
 }
