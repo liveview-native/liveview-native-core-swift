@@ -15,7 +15,7 @@ let package = Package(
         // .package(url: /* package url */, from: "1.0.0"),
     ],
     targets: [
-        .binaryTarget(name: "liveview_native_core", url: "https://github.com/liveviewnative/liveview-native-core/releases/download/0.1.0-026f5d1/liveview_native_core.xcframework.zip", checksum: "f7e29069e2d672f8abb21dad3564d4592552420fdf26422cf6a7748509b8ebd5"),
+        .binaryTarget(name: "liveview_native_core", url: "https://github.com/liveviewnative/liveview-native-core/releases/download/0.1.0-d5b36bc/liveview_native_core.xcframework.zip", checksum: "4fdbed1e0a750ae95bcd7b6bd7dc3af500dba3d9012313503ef8804de2a4d741"),
         //.binaryTarget(name: "liveview_native_core", path: "liveview_native_core.xcframework"),
         .target(
             name: "LiveViewNativeCore",

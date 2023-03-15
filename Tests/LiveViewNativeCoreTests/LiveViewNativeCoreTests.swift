@@ -69,4 +69,15 @@ final class LiveViewNativeCoreTests: XCTestCase {
         let b = a.children().first!
         XCTAssertEqual(b.toString(), "<b>\n    hello\n</b>")
     }
+    
+    func testUppercaseTags() throws {
+        let input = "<A>test</a>"
+        let doc = try Document.parse(input)
+        let a = doc[doc.root()].children().first!
+        guard case .element(let data) = a.data else {
+            XCTFail()
+            return
+        }
+        XCTAssertEqual(data.tag, "A")
+    }
 }

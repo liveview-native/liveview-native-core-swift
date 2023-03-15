@@ -17,7 +17,7 @@ public enum EventType {
     case changed
 }
 
-typealias OnChangeCallback = @convention(c) (UnsafeMutableRawPointer?, NodeRef) -> ()
+typealias OnChangeCallback = @convention(c) (UnsafeMutableRawPointer?, __ChangeType, NodeRef, __OptionNodeRef) -> ()
 
 public class AttributeVec {
     let ptr: UnsafeRawPointer?
@@ -133,10 +133,19 @@ public class Document {
     public func merge(with doc: Document) {
         let context = Unmanaged.passUnretained(self).toOpaque()
 
-        let callback: OnChangeCallback = { context, node in
+        let callback: OnChangeCallback = { context, changeType, node, parent in
             let this = Unmanaged<Document>.fromOpaque(context!).takeUnretainedValue()
 
-            this.handlers[.changed]?(this, node)
+            if let handler = this.handlers[.changed] {
+                switch changeType {
+                case .ChangeTypeAdd:
+                    handler(this, parent.some_value)
+                case .ChangeTypeRemove:
+                    handler(this, parent.some_value)
+                case .ChangeTypeChange:
+                    handler(this, node)
+                }
+            }
         }
 
         __liveview_native_core$Document$merge(self.repr, doc.repr, callback, context)
