@@ -80,4 +80,16 @@ final class LiveViewNativeCoreTests: XCTestCase {
         }
         XCTAssertEqual(data.tag, "A")
     }
+    
+    func testTagSwap() throws {
+        let doc1 = try Document.parse("<a /><b />")
+        let b = doc1[doc1.root()].children()[1]
+        
+        let doc2 = try Document.parse("<b />")
+        
+        doc1.merge(with: doc2)
+        
+        // ensure the element is preserved across updates.
+        XCTAssertEqual(doc1[doc1.root()].children()[0].id, b.id)
+    }
 }
