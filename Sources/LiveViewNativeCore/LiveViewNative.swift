@@ -144,6 +144,8 @@ public class Document {
                     handler(this, parent.some_value)
                 case .ChangeTypeChange:
                     handler(this, node)
+                case .ChangeTypeReplace:
+                    handler(this, parent.some_value)
                 }
             }
         }
