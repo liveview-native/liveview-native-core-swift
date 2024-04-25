@@ -1,6 +1,8 @@
 import liveview_native_core
+import Foundation
 
 public typealias NodeRef = liveview_native_core.NodeRef
+public typealias Payload = [String: Any]
 
 /// Raised when a `Document` fails to parse
 public struct ParseError: Error {
@@ -152,6 +154,58 @@ public class Document {
 
         __liveview_native_core$Document$merge(self.repr, doc.repr, callback, context)
     }
+    public static func parseFragmentJson(payload: Payload) throws -> Document {
+        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted)
+        var payload = String(data: jsonData, encoding: .utf8)!
+        return try payload.toRustStr({ payload in
+            let errorPtr = UnsafeMutablePointer<_RustString>.allocate(capacity: 1)
+            let result = __liveview_native_core$Document$parse_fragment_json(payload.toFfiRepr(), errorPtr)
+            if result.is_ok {
+                errorPtr.deallocate()
+                let doc = Document(__Document(ptr: result.ok_result))
+                return doc
+            } else {
+                let rustString = RustString(errorPtr.move())
+                throw ParseError(message: rustString.toString())
+            }
+        })
+    }
+    public func mergeFragmentJson (payload: Payload) throws {
+        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted)
+        var payload = String(data: jsonData, encoding: .utf8)!
+
+        let context = Unmanaged.passUnretained(self).toOpaque()
+
+        let callback: OnChangeCallback = { context, changeType, node, parent in
+            let this = Unmanaged<Document>.fromOpaque(context!).takeUnretainedValue()
+
+            if let handler = this.handlers[.changed] {
+                switch changeType {
+                case .ChangeTypeAdd:
+                    handler(this, parent.some_value)
+                case .ChangeTypeRemove:
+                    handler(this, parent.some_value)
+                case .ChangeTypeChange:
+                    handler(this, node)
+                case .ChangeTypeReplace:
+                    handler(this, parent.some_value)
+                }
+            }
+        }
+        let errorPtr = UnsafeMutablePointer<_RustString>.allocate(capacity: 1)
+        let result = payload.toRustStr({ payload in
+                              __liveview_native_core$Document$merge_fragment_json(self.repr, payload.toFfiRepr(), callback, context, errorPtr)
+                          })
+            if result.is_ok {
+                errorPtr.deallocate()
+                //let doc = Document(__Document(ptr: result.ok_result))
+                //return doc
+            } else {
+                let rustString = RustString(errorPtr.move())
+                throw ParseError(message: rustString.toString())
+            }
+
+    }
 
     /// Returns a reference to the root node of the document
     ///
@@ -165,7 +219,7 @@ public class Document {
         let node = __liveview_native_core$Document$get(self.repr, ref)
         return Node(doc: self, ref: ref, data: node)
     }
-    
+
     /// Returns the parent, if there is one, of the node with the given ref.
     public func getParent(_ ref: NodeRef) -> NodeRef? {
         let result = __liveview_native_core$Document$get_parent(self.repr, ref)
@@ -234,7 +288,7 @@ public class Node: Identifiable {
             self.data = .leaf(RustStr(data.data.leaf).toString()!)
         }
     }
-    
+
     /// Renders this node to a `String`
     public func toString() -> String {
         let str = RustString(__liveview_native_core$Document$node_to_string(self.doc.repr, self.id))
@@ -245,13 +299,14 @@ public class Node: Identifiable {
     public subscript(_ name: AttributeName) -> Attribute? {
         return attributes.first { $0.name == name }
     }
-    
+
     /// A sequence of the children of this node.
     public func children() -> NodeChildrenSequence {
         let children = doc.getChildren(id)
+        //print("Node Children: ", children)
         return NodeChildrenSequence(doc: doc, slice: children, startIndex: children.startIndex, endIndex: children.endIndex)
     }
-    
+
     /// A sequence of this node's children that visits them recursively in depth-first order.
     ///
     /// ## Example
@@ -272,16 +327,16 @@ public class Node: Identifiable {
 public struct NodeChildrenSequence: Sequence, Collection, RandomAccessCollection {
     public typealias Element = Node
     public typealias Index = Int
-    
+
     let doc: Document
     let slice: RustSlice<NodeRef>
     public let startIndex: Int
     public let endIndex: Int
-    
+
     public func index(after i: Int) -> Int {
         i + 1
     }
-    
+
     public subscript(position: Int) -> Node {
         doc[slice[startIndex + position]]
     }
@@ -292,18 +347,18 @@ public struct NodeChildrenSequence: Sequence, Collection, RandomAccessCollection
 /// See ``Node/depthFirstChildren()``
 public struct NodeDepthFirstChildrenSequence: Sequence {
     public typealias Element = Node
-    
+
     let root: Node
-    
+
     public func makeIterator() -> Iterator {
         return Iterator(children: [root.children().makeIterator()])
     }
-    
+
     public struct Iterator: IteratorProtocol {
         public typealias Element = Node
-        
+
         var children: [NodeChildrenSequence.Iterator]
-        
+
         public mutating func next() -> Node? {
             if !children.isEmpty {
                 if let node = children[children.count - 1].next() {
@@ -379,7 +434,7 @@ extension Attribute: Hashable {
 public struct AttributeName: RawRepresentable {
     public var namespace: String?
     public var name: String
-    
+
     /// The textual representation (`namespace:name` if it has a namespace, otherwise just the name) of this attribute name.
     public var rawValue: String {
         if let namespace {
@@ -388,7 +443,7 @@ public struct AttributeName: RawRepresentable {
             return name
         }
     }
-    
+
     /// Creates a name by parsing a string, extracting a namespace if present.
     ///
     /// Fails if the string is empty or there are more than two colon-delimited parts.
