@@ -154,10 +154,9 @@ public class Document {
 
         __liveview_native_core$Document$merge(self.repr, doc.repr, callback, context)
     }
-    public static func parseFragmentJson(payload: Payload) throws -> Document {
-        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted)
-        var payload = String(data: jsonData, encoding: .utf8)!
-        return try payload.toRustStr({ payload in
+    public static func parseFragmentJson(_ input: String) throws -> Document {
+        var input = input
+        return try input.toRustStr({ payload in
             let errorPtr = UnsafeMutablePointer<_RustString>.allocate(capacity: 1)
             let result = __liveview_native_core$Document$parse_fragment_json(payload.toFfiRepr(), errorPtr)
             if result.is_ok {
@@ -170,10 +169,12 @@ public class Document {
             }
         })
     }
-    public func mergeFragmentJson (payload: Payload) throws {
+    public static func parseFragmentJson(payload: Payload) throws -> Document {
         let jsonData = try JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted)
-        var payload = String(data: jsonData, encoding: .utf8)!
-
+        return try parseFragmentJson(String(data: jsonData, encoding: .utf8)!)
+    }
+    public func mergeFragmentJson (_ input: String) throws {
+        var input = input
         let context = Unmanaged.passUnretained(self).toOpaque()
 
         let callback: OnChangeCallback = { context, changeType, node, parent in
@@ -193,7 +194,7 @@ public class Document {
             }
         }
         let errorPtr = UnsafeMutablePointer<_RustString>.allocate(capacity: 1)
-        let result = payload.toRustStr({ payload in
+        let result = input.toRustStr({ payload in
                               __liveview_native_core$Document$merge_fragment_json(self.repr, payload.toFfiRepr(), callback, context, errorPtr)
                           })
             if result.is_ok {
@@ -204,7 +205,11 @@ public class Document {
                 let rustString = RustString(errorPtr.move())
                 throw ParseError(message: rustString.toString())
             }
-
+    }
+    public func mergeFragmentJson (payload: Payload) throws {
+        let jsonData = try JSONSerialization.data(withJSONObject: payload, options: .prettyPrinted)
+        let payload = String(data: jsonData, encoding: .utf8)!
+        return try mergeFragmentJson(payload)
     }
 
     /// Returns a reference to the root node of the document
