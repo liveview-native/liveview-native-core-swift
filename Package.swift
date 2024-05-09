@@ -5,6 +5,12 @@ import PackageDescription
 
 let package = Package(
     name: "LiveViewNativeCore",
+    platforms: [
+        .iOS("16.0"),
+        .macOS("13.0"),
+        .watchOS("9.0"),
+        .tvOS("16.0"),
+    ],
     products: [
         .library(
             name: "LiveViewNativeCore",
@@ -13,6 +19,7 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         // .package(url: /* package url */, from: "1.0.0"),
+        .package(url: "https://github.com/ordo-one/package-benchmark", .upToNextMajor(from: "1.0.0")),
     ],
     targets: [
         .binaryTarget(
@@ -28,5 +35,16 @@ let package = Package(
         .testTarget(
             name: "LiveViewNativeCoreTests",
             dependencies: ["LiveViewNativeCore"]),
+        .executableTarget(
+            name: "LiveViewNativeCoreBenchmarks",
+            dependencies: [
+                .product(name: "Benchmark", package: "package-benchmark"),
+                "LiveViewNativeCore",
+            ],
+            path: "Benchmarks/LiveViewNativeCore",
+            plugins: [
+                .plugin(name: "BenchmarkPlugin", package: "package-benchmark")
+            ]
+            ),
     ]
 )
